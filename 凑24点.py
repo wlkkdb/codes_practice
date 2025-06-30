@@ -2,9 +2,9 @@ from itertools import permutations, product
 import re
 
 
-def is_valid_number(s):
+def is_valid_number():
     try:
-        float(s)
+        float()
         return True
     except ValueError:
         return False
