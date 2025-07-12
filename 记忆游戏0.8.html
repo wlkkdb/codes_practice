@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>记忆连连看</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .game-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            margin: 15px 0;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 15px;
+            font-weight: bold;
+            text-align: center;
+            min-height: 24px;
+            font-size: 18px;
+            color: #2196F3;
+        }
+
+        /* 连连看游戏样式 */
+        .memory-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 20px auto;
+            max-width: 400px;
+        }
+
+        .memory-card {
+            width: 100%;
+            height: 80px;
+            background-color: #2196F3;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.3s, background-color 0.3s;
+            transform-style: preserve-3d;
+            position: relative;
+        }
+
+        .memory-card.flipped {
+            background-color: #ff9800;
+            transform: rotateY(180deg);
+        }
+
+        .memory-card.matched {
+            background-color: #4CAF50;
+            cursor: default;
+        }
+
+        .timer {
+            font-size: 18px;
+            margin: 10px 0;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>记忆连连看</h1>
+
+    <div class="game-container">
+        <div class="controls">
+            <button id="startMemory">开始游戏</button>
+            <button id="resetMemory" disabled>重新开始</button>
+        </div>
+        <div class="timer" id="timer">用时: 0.00秒</div>
+        <div class="memory-board" id="memoryBoard"></div>
+        <div class="result" id="memoryResult"></div>
+    </div>
+
+    <script>
+        // 记忆连连看游戏
+        const memoryBoard = document.getElementById('memoryBoard');
+        const startMemoryBtn = document.getElementById('startMemory');
+        const resetMemoryBtn = document.getElementById('resetMemory');
+        const memoryResult = document.getElementById('memoryResult');
+        const timerDisplay = document.getElementById('timer');
+
+        const symbols = ['🍎', '🍌', '🍒', '🍓', '🍊', '🍋', '🍐', '🍇'];
+        let cards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let gameStarted = false;
+        let startTime;
+        let timerInterval;
+
+        // 初始化游戏
+        function initMemoryGame() {
+            memoryBoard.innerHTML = '';
+            cards = [];
+            flippedCards = [];
+            matchedPairs = 0;
+            gameStarted = false;
+            memoryResult.textContent = '';
+            timerDisplay.textContent = '用时: 0.00秒';
+            clearInterval(timerInterval);
+
+            // 创建卡片对
+            const gameCards = [...symbols, ...symbols];
+
+            // 洗牌
+            for (let i = gameCards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [gameCards[i], gameCards[j]] = [gameCards[j], gameCards[i]];
+            }
+
+            // 创建卡片元素
+            gameCards.forEach((symbol, index) => {
+                const card = document.createElement('div');
+                card.className = 'memory-card';
+                card.dataset.symbol = symbol;
+                card.dataset.index = index;
+                card.addEventListener('click', flipCard);
+                memoryBoard.appendChild(card);
+                cards.push(card);
+            });
+        }
+
+        // 更新计时器
+        function updateTimer() {
+            const currentTime = new Date().getTime();
+            const elapsedTime = (currentTime - startTime) / 1000;
+            timerDisplay.textContent = `用时: ${elapsedTime.toFixed(2)}秒`;
+        }
+
+        // 翻转卡片
+        function flipCard() {
+            if (!gameStarted) {
+                gameStarted = true;
+                startTime = new Date().getTime();
+                timerInterval = setInterval(updateTimer, 100);
+                startMemoryBtn.disabled = true;
+                resetMemoryBtn.disabled = false;
+            }
+
+            // 如果已经翻转或匹配，则不做任何操作
+            if (this.classList.contains('flipped') || this.classList.contains('matched')) {
+                return;
+            }
+
+            // 如果已经有两张卡片翻转，则不做任何操作
+            if (flippedCards.length === 2) {
+                return;
+            }
+
+            // 翻转卡片
+            this.classList.add('flipped');
+            this.textContent = this.dataset.symbol;
+            flippedCards.push(this);
+
+            // 检查是否匹配
+            if (flippedCards.length === 2) {
+                if (flippedCards[0].dataset.symbol === flippedCards[1].dataset.symbol) {
+                    // 匹配成功
+                    flippedCards.forEach(card => {
+                        card.classList.add('matched');
+                    });
+                    flippedCards = [];
+                    matchedPairs++;
+
+                    // 检查游戏是否结束
+                    if (matchedPairs === symbols.length) {
+                        const endTime = new Date().getTime();
+                        const totalTime = ((endTime - startTime) / 1000).toFixed(2);
+                        clearInterval(timerInterval);
+                        memoryResult.textContent = `恭喜你完成了游戏！用时: ${totalTime}秒`;
+                        gameStarted = false;
+                    }
+                } else {
+                    // 不匹配，翻回去
+                    setTimeout(() => {
+                        flippedCards.forEach(card => {
+                            card.classList.remove('flipped');
+                            card.textContent = '';
+                        });
+                        flippedCards = [];
+                    }, 1000);
+                }
+            }
+        }
+
+        // 开始游戏
+        startMemoryBtn.addEventListener('click', initMemoryGame);
+
+        // 重新开始游戏
+        resetMemoryBtn.addEventListener('click', () => {
+            initMemoryGame();
+            resetMemoryBtn.disabled = true;
+            startMemoryBtn.disabled = false;
+        });
+
+        // 初始化游戏
+        initMemoryGame();
+    </script>
+</body>
+</html>
